@@ -1,6 +1,7 @@
 import gspread
 from oauth2client.service_account import ServiceAccountCredentials
 import pandas as pd
+import time
 
 scope = ['https://spreadsheets.google.com/feeds',
          'https://www.googleapis.com/auth/drive']
@@ -11,7 +12,7 @@ gc = gspread.authorize(credentials)
 
 device = int(input('Iphone: 1\nAndroid: 2\n'))
 haftanumarasi = str(input('Kaçıncı hafta?\n'))
-altk = int(input('Dev-Team: 1\nEğitimler: 2\nBBO: 3\n'))
+altk = int(input('Dev-Team: 1\nEğitimler: 2\nBBO: 3\nOther: 4\n'))
 
 # Open a worksheet from spreadsheet:
 if altk == 1:
@@ -31,6 +32,11 @@ elif altk == 2:
         raise ValueError('Wrong value entered.')
 elif altk == 3:
     wks = gc.open_by_key('1IIu4KhAw86wKGc0jPp3NnTzsjBQc-YJg8EIy8tDsW54').sheet1
+elif altk == 4:
+    # 1_YmrPDAqQIPiEHuUvJGs_-ShC6vjGBc5Qw81LskhvAY  datacamp
+    # 1n_hz0vZIcZva8cnOagJcX14qOHx9XcfCp32V5pqCjvo  workshop
+    sps = gc.open_by_key(input('Sheet ID: '))
+    wks = sps.get_worksheet(int(input('SpreadSheet Number: ')))
 
 # Get the position of the column:
 cell_list = wks.range('A1:Z1')
@@ -52,11 +58,15 @@ elif device == 2:
 # Create a list form csv file:
 gelenler = []
 for gelen in QRgelen:
-    gelenler.append(gelen.split(',')[2])
+    gelenler.append(str(gelen.split(',')[2]))
 
 # Update yoklama sheet and set apart missing names: 
 no_match = []
+count = 0
 for gelen in gelenler:
+    count += 1
+    if count == 90:
+        time.sleep(150)
     try:
         wks.update_cell(wks.find(gelen).row, hafta_col, '1')
         print('Added', gelen)
@@ -70,26 +80,25 @@ hicbiryerde_olmayan_numaralar = []
 def next_available_row(worksheet):
     return(len(worksheet.col_values(1)) + 1)
 
-for num in no_match:
-    wks_hepsi = sps.get_worksheet(0)
-    
-    # while wks.cell(next_row, 1).value:
-        # next_row += 1
+if(altk == 2):
+    for num in no_match:
+        wks_hepsi = sps.get_worksheet(0)
+        
+        # while wks.cell(next_row, 1).value:
+            # next_row += 1
 
-    try:
-        row_to_write = next_available_row(wks)
-        for i, element in enumerate(wks_hepsi.row_values(wks_hepsi.find(num).row)):
-            wks.update_cell((row_to_write), i+1, element)
+        try:
+            row_to_write = next_available_row(wks)
+            for i, element in enumerate(wks_hepsi.row_values(wks_hepsi.find(num).row)):
+                wks.update_cell((row_to_write), i+1, element)
 
-        wks.update_cell(row_to_write, hafta_col, '1')
-    except:
-        hicbiryerde_olmayan_numaralar.append(num)
-
-   
-
+            wks.update_cell(row_to_write, hafta_col, '1')
+        except:
+            hicbiryerde_olmayan_numaralar.append(num)
 
 print(no_match)
 print('Bu numaralar bulunamadı')
+
 if(len(hicbiryerde_olmayan_numaralar)>0):
     print(hicbiryerde_olmayan_numaralar)
     print('Bu numaralar bulunamadı ve eklenemedi')
